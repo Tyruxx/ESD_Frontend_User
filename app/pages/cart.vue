@@ -17,6 +17,7 @@
     } from '@/components/ui/item'
     import { Input } from '@/components/ui/input'
     import { MinusIcon, PlusIcon, ChevronLeft } from 'lucide-vue-next'
+    import { toast } from 'vue-sonner'
 
 
     type Item = {
@@ -61,6 +62,9 @@
     type Cart = SubmitOrderRequest[];
 
     const plate_numbers = ref<Record<number, string>>({})
+    const selected_times = ref<Record<number, string>>({});
+    const OPEN_HOUR = 9;
+    const CLOSE_HOUR = 21;
 
     const cartState = await useState<Cart | undefined>('cartState');
 
@@ -99,24 +103,64 @@
         }
     }
 
+    async function validateAndSubmit(order: SubmitOrderRequest) {
+        const plate = plate_numbers.value[order.merchant_id]?.trim();
+        const time = selected_times.value[order.merchant_id];
+
+        if (!plate) {
+            toast.error("Plate Number Required", {
+                description: "Please enter a valid vehicle plate number."
+            });
+            return;
+        }
+        
+        if (!time) {
+            toast.error("Arrival Time Required", {
+                description: "Please select when you plan to arrive."
+            });
+            return;
+        }
+
+        const arrivalDate = new Date(time);
+        const hour = arrivalDate.getHours();
+
+        if (arrivalDate < new Date()) {
+            toast.error("Invalid Time", {
+                description: "Arrival time cannot be in the past."
+            });
+            return;
+        }
+
+        if (hour < OPEN_HOUR || hour >= CLOSE_HOUR) {
+            toast.warning("Merchant Closed", {
+                description: "Please select a time between 09:00 AM and 09:00 PM."
+            });
+            return;
+        }
+
+        await submitOrder(order);
+    }
+
     async function submitOrder(order: SubmitOrderRequest) {
         try {
             const response = await $fetch('/api/submit-order', {
                 method: 'POST',
                 body: {
                     merchant_id: order.merchant_id,
-                    customer_plate: plate_numbers.value[order.merchant_id] || "",
+                    customer_plate: plate_numbers.value[order.merchant_id],
                     customer_id: 1,
                     payment_method: "STRIPE",
                     item_list: order.item_list, // Match the API field name
-                    eta: new Date().toISOString(),
+                    eta: selected_times.value[order.merchant_id],
                     sc_id: order.sc_id
                 }
             })
             cartState.value = cartState.value?.filter(c => c.merchant_id !== order.merchant_id);
             window.location.href = response.payment_url
         } catch (e) {
-            alert('Submit Order Failed')
+            toast.error("Submission Failed", {
+                description: "There was an error processing your order. Please try again."
+            });
         }
     }
 
@@ -172,13 +216,23 @@
                         </ButtonGroup>
                     </div>
                 </div>
-                <div class="flex flex-row w-full justify-between items-center">
-                      <div class="flex flex-row w-full items-center space-x-2">
-                        <Input v-model="plate_numbers[cart.merchant_id]" type="text" placeholder="Enter plate number..." />
-                        <Button type="submit" @click="submitOrder(cart)">
-                            Submit
-                        </Button>
+                <div class="flex flex-col gap-3 w-full justify-between items-end">
+                    <div class="flex flex-col gap-2 w-full">
+                        <div class="flex flex-col w-full">
+                            <label>ETA</label>
+                            <Input 
+                                v-model="selected_times[cart.merchant_id]" 
+                                type="datetime-local" 
+                            />
+                        </div>
+                        <div class="flex flex-col w-full">
+                            <label>Plate Number</label>
+                            <Input v-model="plate_numbers[cart.merchant_id]" type="text" placeholder="Enter plate number..." />
+                        </div>
                     </div>
+                    <Button type="submit" @click="validateAndSubmit(cart)" class="mb-2">
+                        Submit
+                    </Button>
                 </div>
             </Item>
   </div>

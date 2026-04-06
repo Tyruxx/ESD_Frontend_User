@@ -19,7 +19,12 @@ const statusMap: Record<number, { label: string; variant: 'default' | 'secondary
 }
 
 // Mock User ID
-const { data: orders, error: orderError } = await useLazyFetch(`/api/order-by-customer-id?customer_id=1`)
+const { data: orders } = useFetch(`/api/order-by-customer-id?customer_id=1`)
+
+const sortedOrders = computed(() => {
+  if (!orders.value?.data) return []
+  return [...orders.value.data].sort((a, b) => new Date(b.order_time).getTime() - new Date(a.order_time).getTime())
+})
 
 // Item List and Conversion to Record
 type Items = {
@@ -30,17 +35,44 @@ type Items = {
     item_price: number,
     is_on_sale: boolean
 }[]
-const { data: items, error: itemError } = await useLazyFetch<Items>('/api/items');
-if (itemError.value != undefined) {
-  console.error('Error fetching items:', itemError.value);
-} else if (items.value != undefined) {
-  const itemRecord = items.value.reduce((acc: Record<number, any>, item: any) => {
-    acc[item.item_id] = item;
-    return acc;
-  }, {});
-  console.log('Item Record:', itemRecord);
-}
 
+const { data: items, refresh: refreshItems } = useFetch<Items>('/api/item-all')
+
+const itemRecord = ref<Record<number, any>>({})
+
+watch(items, (newItems) => {
+  if (newItems) {
+    itemRecord.value = newItems.reduce((acc: Record<number, any>, item: Items[number]) => {
+      acc[item.item_id] = item;
+      return acc;
+    }, {});
+  }
+}, { immediate: true })
+
+watch(orders, () => {
+  refreshItems()
+}, { immediate: false })
+
+// Shopping Centers
+type ShoppingCenters = {
+    sc_name: string,
+    sc_id: number,
+    sc_address: string,
+    sc_loading_slots: string
+}[]
+
+const { data: shoppingCenters } = useFetch<ShoppingCenters>('/api/shopping-center')
+
+const scRecord = ref<Record<number, any>>({})
+
+watch(shoppingCenters, (newSCs) => {
+  if (newSCs) {
+    scRecord.value = newSCs.reduce((acc: Record<number, any>, sc: ShoppingCenters[number]) => {
+      acc[sc.sc_id] = sc;
+      return acc;
+    }, {});
+  }
+}, { immediate: true })
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleString([], { 
@@ -72,7 +104,7 @@ function goToHome() {
 
     <div class="flex flex-col gap-4">
       <Item
-        v-for="order in orders?.data"
+        v-for="order in sortedOrders"
         :key="order.order_id"
         variant="outline"
         class="flex flex-col items-start p-4 gap-4"
@@ -85,9 +117,12 @@ function goToHome() {
           <Badge variant="outline" v-else>
             UNKNOWN
           </Badge>
+          <Badge variant="secondary">
+            PLATE: {{ order.customer_plate || "N/A" }}
+          </Badge>
             <div class="gap-1">
-              <ItemTitle class="text-lg">Order #{{ order.order_id }}</ItemTitle>
-              <ItemDescription>Plate: {{ order.customer_plate }}</ItemDescription>
+              <ItemTitle class="text-lg">Order #{{ order.order_id }} at {{ scRecord[order.sc_id]?.sc_name }}</ItemTitle>
+              <ItemDescription>{{ scRecord[order.sc_id]?.sc_address }}</ItemDescription>
             </div>
           </div>
         </div>
@@ -102,7 +137,7 @@ function goToHome() {
           >
             <span class="flex gap-2">
               <span class="font-bold text-primary">{{ item.item_qty }}x</span>
-              Item #{{ item.item_id}}
+              {{ itemRecord[item.item_id]?.item_name || 'Unknown Item' }}
             </span>
             <span class="font-medium">${{ (item.item_price * item.item_qty).toFixed(2) }}</span>
           </div>
@@ -128,7 +163,7 @@ function goToHome() {
       </Item>
     </div>
 
-    <div v-if="orders?.data.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+    <div v-if="sortedOrders.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
       <Package class="w-12 h-12 text-muted-foreground mb-4" />
       <h3 class="text-lg font-medium">No orders yet</h3>
       <p class="text-sm text-muted-foreground">When you place an order, it will appear here.</p>

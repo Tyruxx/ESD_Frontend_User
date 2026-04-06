@@ -23,7 +23,7 @@
             ScId: scId
         }
     })
-    if (error) {
+    if (error.value != undefined) {
         console.log("Verify Order Failed")
     }
 
