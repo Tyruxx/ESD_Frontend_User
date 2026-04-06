@@ -28,8 +28,7 @@ function logout() {
   if (import.meta.client) {
     userSession.value = ''
     cartState.value = undefined
-    sessionStorage.removeItem('user_cart')
-    sessionStorage.removeItem('user_session')
+    sessionStorage.clear()
     navigateTo('/login')
   }
 }
