@@ -1,157 +1,142 @@
 <script lang="ts" setup>
-    import { AspectRatio } from '@/components/ui/aspect-ratio'
-    import { MinusIcon, PlusIcon, ChevronLeft } from 'lucide-vue-next'
-    import { Button } from '@/components/ui/button'
-    import { ButtonGroup } from '@/components/ui/button-group'
-    
+import { AspectRatio } from '@/components/ui/aspect-ratio'
+import { ChevronLeft } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { ref, watch, onMounted } from 'vue'
+import { toast } from 'vue-sonner'
 
-    type Item = {
-      item_id: number,
-      merchant_id: number,
-      item_name: string,
-      item_qty: number,
-      item_price: number,
-      is_on_sale: boolean
+// --- 1. TYPE DEFINITIONS ---
+type Item = {
+  item_id: number,
+  merchant_id: number,
+  item_name: string,
+  item_qty: number,
+  item_price: number,
+  is_on_sale: boolean
+}
+
+type OrderItem = {
+  item_id: number,
+  item_qty: number
+};
+
+type SubmitOrderRequest = {
+  merchant_id: number,
+  customer_plate: string,
+  customer_id: string,
+  payment_method: string,
+  item_list: OrderItem[],
+  eta: string,
+  merchant_name?: string,
+  opening_time?: string,
+  closing_time?: string,
+  items_full_data: Item[],
+  sc_id: number
+};
+
+type Cart = SubmitOrderRequest[];
+
+type ShoppingCenter = {
+  sc_name: string,
+  sc_id: number,
+  sc_address: string,
+  sc_loading_slots: string
+}
+
+type Merchant = {
+  merchant_id: number,
+  sc_id: number,
+  merchant_name: string,
+  opening_time: string,
+  closing_time: string,
+}
+
+// --- 2. GLOBAL STATE ---
+const merchantState = await useState<Merchant | undefined>('merchantState');
+const shoppingCenterState = await useState<ShoppingCenter | undefined>('shoppingCenterState');
+const itemState = await useState<Item | undefined>('itemState');
+const cartState = await useState<Cart | undefined>('cartState', () => []);
+
+// --- 3. SESSION PERSISTENCE ---
+watch(cartState, (newCart) => {
+  if (import.meta.client) {
+    if (!newCart) {
+      sessionStorage.removeItem('user_cart');
+    } else {
+      sessionStorage.setItem('user_cart', JSON.stringify(newCart));
     }
-    
-    type OrderItem = {
-    item_id: number,
-    item_qty: number
-    };
+  }
+}, { deep: true });
 
-    type SubmitOrderRequest = {
-        merchant_id: number,
-        customer_plate: string,
-        customer_id: string,
-        payment_method: string,
-        item_list: OrderItem[],
-        eta: string,
-        // We add these for UI display purposes only
-        merchant_name?: string,
-        opening_time?: string,
-        closing_time?: string,
-        items_full_data: Item[],
-        sc_id: number
-    };
-
-    type Cart = SubmitOrderRequest[];
-
-    type ShoppingCenter = {
-            sc_name: string,
-            sc_id: number,
-            sc_address: string,
-            sc_loading_slots: string
+onMounted(() => {
+  if (import.meta.client) {
+    const savedCart = sessionStorage.getItem('user_cart');
+    if (savedCart && savedCart !== 'undefined' && savedCart !== 'null') {
+      const parsed = JSON.parse(savedCart);
+      // Only hydrate if the current state is empty to avoid overwriting newer changes
+      if (!cartState.value || cartState.value.length === 0) {
+        cartState.value = parsed;
+      }
     }
+  }
+});
 
-    type Merchant = {
-      merchant_id: number,
-      sc_id: number,
-      merchant_name: string,
-      opening_time: string,
-      closing_time: string,
-    }
-
-    const merchantState = await useState<Merchant | undefined>('merchantState');
-    const shoppingCenterState = await useState<ShoppingCenter | undefined>('shoppingCenterState');
-    const itemState = await useState<Item | undefined >('itemState');
-    const cartState = await useState<Cart | undefined>('cartState');
-
-    watch(cartState, (newCart) => {
-        if (import.meta.client) {
-            if (newCart === undefined || newCart === null) {
-                sessionStorage.removeItem('user_cart');
-            } else {
-                sessionStorage.setItem('user_cart', JSON.stringify(newCart));
-            }
-        }
-    }, { deep: true });
-
-    onMounted(() => {
-        if (import.meta.client) {
-            const savedCart = sessionStorage.getItem('user_cart');
-            if (savedCart && savedCart !== 'undefined' && savedCart !== 'null' && (!cartState.value || cartState.value.length === 0)) {
-                cartState.value = JSON.parse(savedCart);
-            }
-        }
-    });
-
-    const quantity = ref(0);
-    function updateQuantity(type: string) {
-        if (type == "minus") {
-            if (quantity.value > 0) {
-                quantity.value--;
-            }
-        } else {
-            if (quantity.value < (itemState.value?.item_qty ?? 0)) {
-                quantity.value++;
-            }
-        }
-    }
-    function revertItemState() {
-        itemState.value = undefined;
-    }
+// --- 4. ACTIONS ---
+function revertItemState() {
+  itemState.value = undefined;
+}
 
 function updateIntoCart() {
-    const item = itemState.value;
-    if (!item) return;
+  const item = itemState.value;
+  if (!item) return;
 
-    if (!cartState.value) cartState.value = [];
+  // Initialize cart if it doesn't exist
+  if (!cartState.value) cartState.value = [];
 
-    // Find the order for this specific merchant
-    let merchantOrder = cartState.value.find(order => order.merchant_id === item.merchant_id);
+  // Find the existing order for this specific merchant
+  let merchantOrder = cartState.value.find(order => order.merchant_id === item.merchant_id);
 
-    if (!merchantOrder) {
-        // Create a new order entry for this merchant
-        merchantOrder = {
-            merchant_id: item.merchant_id,
-            sc_id: shoppingCenterState.value?.sc_id ?? 0,
-            customer_plate: "", // Default from API
-            customer_id: "",    // Default from API
-            payment_method: "", // Default from API
-            eta: new Date().toISOString(),
-            item_list: [],
-            items_full_data: [],
-            merchant_name: merchantState.value?.merchant_name,
-            opening_time: merchantState.value?.opening_time,
-            closing_time: merchantState.value?.closing_time,
-        };
-        cartState.value.push(merchantOrder);
-    }
+  if (!merchantOrder) {
+    // Create a new merchant entry if this is the first item from them
+    merchantOrder = {
+      merchant_id: item.merchant_id,
+      sc_id: shoppingCenterState.value?.sc_id ?? 0,
+      customer_plate: "", 
+      customer_id: "",    
+      payment_method: "STRIPE", 
+      eta: new Date().toISOString(),
+      item_list: [],
+      items_full_data: [],
+      merchant_name: merchantState.value?.merchant_name,
+      opening_time: merchantState.value?.opening_time,
+      closing_time: merchantState.value?.closing_time,
+    };
+    cartState.value.push(merchantOrder);
+  }
 
-    const existingItemIdx = merchantOrder.item_list.findIndex(i => i.item_id === item.item_id);
+  // Check if this specific item is already in that merchant's list
+  const existingItemIdx = merchantOrder.item_list.findIndex(i => i.item_id === item.item_id);
 
-    if (quantity.value <= 0) {
-        // Remove item if quantity is 0
-        if (existingItemIdx > -1) {
-            merchantOrder.item_list.splice(existingItemIdx, 1);
-            merchantOrder.items_full_data.splice(existingItemIdx, 1);
-        }
+  if (existingItemIdx > -1 && merchantOrder.item_list[existingItemIdx] != undefined) {
+    // Logic: Increment by 1 on every click
+    const currentQty = merchantOrder.item_list[existingItemIdx].item_qty;
+    const maxQty = item.item_qty ?? 999;
+
+    if (currentQty < maxQty && merchantOrder.items_full_data[existingItemIdx] != undefined) {
+      merchantOrder.item_list[existingItemIdx].item_qty++;
+      merchantOrder.items_full_data[existingItemIdx].item_qty++;
+      toast.success(`Increased quantity of ${item.item_name} to ${merchantOrder.item_list[existingItemIdx].item_qty}.`);
     } else {
-        if (existingItemIdx > -1 && merchantOrder.item_list[existingItemIdx] != undefined && merchantOrder.items_full_data[existingItemIdx] != undefined) {
-            merchantOrder.item_list[existingItemIdx].item_qty = quantity.value;
-            merchantOrder.items_full_data[existingItemIdx].item_qty = quantity.value;
-        } else {
-            merchantOrder.item_list.unshift({ item_id: item.item_id, item_qty: quantity.value });
-            merchantOrder.items_full_data.unshift({ ...item, item_qty: quantity.value });
-        }
+      toast.error(`Cannot add more than ${maxQty} of this item.`);
     }
+  } else {
+    // Logic: First time adding this item, set quantity to 1
+    merchantOrder.item_list.unshift({ item_id: item.item_id, item_qty: 1 });
+    merchantOrder.items_full_data.unshift({ ...item, item_qty: 1 });
+  }
 }
-    onMounted(() => {
-        const merchantId = itemState.value?.merchant_id;
-        if (merchantId != undefined && cartState.value) {
-            // Find the merchant order in the array first
-            const merchantOrder = cartState.value.find(o => o.merchant_id === merchantId);
-            
-            if (merchantOrder) {
-                // Then find the specific item within that merchant's list
-                const inCart = merchantOrder.item_list.find(i => i.item_id === itemState.value?.item_id);
-                if (inCart) {
-                    quantity.value = inCart.item_qty;
-                }
-            }
-        }
-    });
 </script>
+
 <template>
     <div>
         <Button @click="revertItemState()">
@@ -179,15 +164,7 @@ function updateIntoCart() {
             <div class="w-fit text-5xl font-semibold">
                 ${{ itemState?.item_price }}
             </div>
-            <div class="flex flex-row gap-4 items-center">
-                <div class="w-fit text-base font-base">Quantity</div>
-                <ButtonGroup>
-                    <Button variant="outline" @click="updateQuantity('minus')"><MinusIcon /></Button>
-                    <Button disabled variant="outline">{{ quantity }}</Button>
-                    <Button variant="outline" @click="updateQuantity('plus')"><PlusIcon /></Button>
-                </ButtonGroup>
-            </div>
         </div>
-        <Button @click="updateIntoCart()">Add to cart  (${{ (itemState?.item_price ?? 0) * quantity }})</Button>
+        <Button @click="updateIntoCart()">Add to cart</Button>
     </div>
 </template>
