@@ -101,9 +101,18 @@ if (import.meta.client) {
 
         if (itemRef && fullData) {
             if (type === "minus") {
-                if (itemRef.item_qty > 0) {
+                if (itemRef.item_qty > 1) {
                     itemRef.item_qty--;
                     fullData.item_qty--;
+                } else {
+                    // Remove item when quantity reaches 0
+                    order.item_list = order.item_list.filter(i => i.item_id !== item_id);
+                    order.items_full_data = order.items_full_data.filter(i => i.item_id !== item_id);
+
+                    // Remove the merchant order entirely if no items remain
+                    if (order.item_list.length === 0) {
+                        cartState.value = cartState.value?.filter(o => o.merchant_id !== merchant_id);
+                    }
                 }
             } else {
                 itemRef.item_qty++;
