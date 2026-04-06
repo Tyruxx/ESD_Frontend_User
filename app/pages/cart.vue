@@ -1,4 +1,11 @@
 <script lang="ts" setup>
+if (import.meta.client) {
+  const session = sessionStorage.getItem('user_session')
+  if (!session) {
+    navigateTo('/login')
+  }
+}
+
     import {
     Card,
     CardContent,
@@ -47,15 +54,17 @@
     };
 
     type SubmitOrderRequest = {
-        merchant_id: number;
-        customer_plate: string;
-        customer_id: number;
-        payment_method: string;
-        item_list: OrderItem[];
-        eta: string;
+        merchant_id: number,
+        customer_plate: string,
+        customer_id: number,
+        payment_method: string,
+        item_list: OrderItem[],
+        eta: string,
         // We add these for UI display purposes only
-        merchant_name?: string;
-        items_full_data: Item[];
+        merchant_name?: string,
+        opening_time?: string,
+        closing_time?: string,
+        items_full_data: Item[],
         sc_id: number
     };
 
@@ -123,6 +132,8 @@
 
         const arrivalDate = new Date(time);
         const hour = arrivalDate.getHours();
+        const openingHour = parseInt(order.opening_time?.split(':')[0] || '-1');
+        const closingHour = parseInt(order.closing_time?.split(':')[0] || '-1');
 
         if (arrivalDate < new Date()) {
             toast.error("Invalid Time", {
@@ -131,14 +142,19 @@
             return;
         }
 
-        if (hour < OPEN_HOUR || hour >= CLOSE_HOUR) {
-            toast.warning("Merchant Closed", {
-                description: "Please select a time between 09:00 AM and 09:00 PM."
+        if (openingHour != -1 && closingHour != -1) {
+            if (hour < openingHour || hour >= closingHour) {
+                toast.warning("Merchant Closed", {
+                    description: `Please select a time between ${openingHour}:00 and ${closingHour}:00.`
+                });
+                return;
+            }
+            await submitOrder(order);
+        } else {
+            toast.error("Merchant Hours Unavailable", {
+                description: "Unable to retrieve merchant hours. Please try again later."
             });
-            return;
         }
-
-        await submitOrder(order);
     }
 
     async function submitOrder(order: SubmitOrderRequest) {
@@ -152,7 +168,7 @@
                     payment_method: "STRIPE",
                     item_list: order.item_list, // Match the API field name
                     eta: selected_times.value[order.merchant_id],
-                    sc_id: order.sc_id
+                    sc_id: order.sc_id,
                 }
             })
             cartState.value = cartState.value?.filter(c => c.merchant_id !== order.merchant_id);

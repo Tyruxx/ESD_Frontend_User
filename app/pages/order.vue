@@ -1,4 +1,11 @@
 <script lang="ts" setup>
+if (import.meta.client) {
+  const session = sessionStorage.getItem('user_session')
+  if (!session) {
+    navigateTo('/login')
+  }
+}
+
 import { Badge } from '@/components/ui/badge'
 import { ChevronLeft, Clock, Package } from 'lucide-vue-next'
 import {
@@ -19,7 +26,8 @@ const statusMap: Record<number, { label: string; variant: 'default' | 'secondary
 }
 
 // Mock User ID
-const { data: orders } = useFetch(`/api/order-by-customer-id?customer_id=1`)
+const customerId = await useState<string>('user_session')
+const { data: orders } = useFetch(`/api/order-by-customer-id?customer_id=${customerId.value}`)
 
 const sortedOrders = computed(() => {
   if (!orders.value?.data) return []

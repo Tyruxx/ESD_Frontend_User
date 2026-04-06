@@ -22,6 +22,17 @@ function goToCartPage() {
   navigateTo('/cart');
 }
 
+const userSession = useState<string>('user_session', () => '')
+
+function logout() {
+  if (import.meta.client) {
+    userSession.value = ''
+    sessionStorage.removeItem('user_cart')
+    cartState.value = undefined
+    navigateTo('/login')
+  }
+}
+
 type Item = {
   item_id: number,
   merchant_id: number,
@@ -51,19 +62,38 @@ type Cart = SubmitOrderRequest[];
 const cartState = useState<Cart | undefined>('cartState');
 watch(cartState, (newCart) => {
     if (import.meta.client) {
-        sessionStorage.setItem('user_cart', JSON.stringify(newCart));
+        if (newCart === undefined || newCart === null) {
+            sessionStorage.removeItem('user_cart');
+        } else {
+            sessionStorage.setItem('user_cart', JSON.stringify(newCart));
+        }
     }
 }, { deep: true });
 
 onMounted(() => {
     if (import.meta.client) {
         const savedCart = sessionStorage.getItem('user_cart');
-        if (savedCart && (!cartState.value || cartState.value.length === 0)) {
+        if (savedCart && savedCart !== 'undefined' && savedCart !== 'null' && (!cartState.value || cartState.value.length === 0)) {
             cartState.value = JSON.parse(savedCart);
+        }
+        const savedSession = sessionStorage.getItem('user_session')
+        if (savedSession && !userSession.value) {
+          userSession.value = savedSession
         }
     }
 });
 
+const customerId = computed(() => userSession.value)
+
+watch(userSession, (value) => {
+  if (import.meta.client) {
+    if (!value) {
+      sessionStorage.removeItem('user_session')
+    } else {
+      sessionStorage.setItem('user_session', value)
+    }
+  }
+})
 
 const totalItems = computed(() => {
     if (cartState == undefined) {
@@ -118,7 +148,10 @@ const totalItems = computed(() => {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter />
+      <SidebarFooter class="items-start p-4 flex flex-row gap-4" v-if="customerId != ''">
+        <div class="text-sm mb-2">Logged in as Customer ID {{ customerId }}</div>
+        <Button @click="logout()" class="">Logout</Button>
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
     <SidebarInset>

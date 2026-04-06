@@ -1,4 +1,11 @@
 <script lang="ts" setup>
+if (import.meta.client) {
+  const session = sessionStorage.getItem('user_session')
+  if (!session) {
+    navigateTo('/login')
+  }
+}
+
     const orderId = Number(useRoute().query.OrderId)
     const merchantId = Number(useRoute().query.MerchantId)
     const scId = Number(useRoute().query.ScId)

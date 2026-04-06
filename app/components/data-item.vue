@@ -15,20 +15,22 @@
     }
     
     type OrderItem = {
-    item_id: number;
-    item_qty: number;
+    item_id: number,
+    item_qty: number
     };
 
     type SubmitOrderRequest = {
-        merchant_id: number;
-        customer_plate: string;
-        customer_id: string;
-        payment_method: string;
-        item_list: OrderItem[];
-        eta: string;
+        merchant_id: number,
+        customer_plate: string,
+        customer_id: string,
+        payment_method: string,
+        item_list: OrderItem[],
+        eta: string,
         // We add these for UI display purposes only
-        merchant_name?: string;
-        items_full_data: Item[];
+        merchant_name?: string,
+        opening_time?: string,
+        closing_time?: string,
+        items_full_data: Item[],
         sc_id: number
     };
 
@@ -44,7 +46,9 @@
     type Merchant = {
       merchant_id: number,
       sc_id: number,
-      merchant_name: string
+      merchant_name: string,
+      opening_time: string,
+      closing_time: string,
     }
 
     const merchantState = await useState<Merchant | undefined>('merchantState');
@@ -54,14 +58,18 @@
 
     watch(cartState, (newCart) => {
         if (import.meta.client) {
-            sessionStorage.setItem('user_cart', JSON.stringify(newCart));
+            if (newCart === undefined || newCart === null) {
+                sessionStorage.removeItem('user_cart');
+            } else {
+                sessionStorage.setItem('user_cart', JSON.stringify(newCart));
+            }
         }
     }, { deep: true });
 
     onMounted(() => {
         if (import.meta.client) {
             const savedCart = sessionStorage.getItem('user_cart');
-            if (savedCart && (!cartState.value || cartState.value.length === 0)) {
+            if (savedCart && savedCart !== 'undefined' && savedCart !== 'null' && (!cartState.value || cartState.value.length === 0)) {
                 cartState.value = JSON.parse(savedCart);
             }
         }
@@ -103,7 +111,9 @@ function updateIntoCart() {
             eta: new Date().toISOString(),
             item_list: [],
             items_full_data: [],
-            merchant_name: merchantState.value?.merchant_name
+            merchant_name: merchantState.value?.merchant_name,
+            opening_time: merchantState.value?.opening_time,
+            closing_time: merchantState.value?.closing_time,
         };
         cartState.value.push(merchantOrder);
     }
