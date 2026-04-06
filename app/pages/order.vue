@@ -99,18 +99,22 @@ function goToHome() {
 </script>
 
 <template>
-  <div class="px-8 py-8 flex mx-auto flex-col min-h-screen gap-6 w-full max-w-md">
-    <div class="flex flex-col gap-4">
-      <Button size="icon" @click="goToHome">
-        <ChevronLeft class="w-4 h-4" />
-      </Button>
-      <div>
-        <h1 class="text-3xl font-semibold">My Orders</h1>
-        <p class="text-muted-foreground text-sm">Track your recent orders and status.</p>
+  <div class="flex flex-col min-h-screen w-full max-w-md mx-auto">
+    <!-- Sticky header -->
+    <div class="fixed top-16 z-10 px-8 pt-8 pb-3 bg-background w-full">
+      <div class="flex flex-col gap-4">
+        <Button size="icon" @click="goToHome">
+          <ChevronLeft class="w-4 h-4" />
+        </Button>
+        <div>
+          <h1 class="text-3xl font-semibold">My Orders</h1>
+          <p class="text-muted-foreground text-sm">Track your recent orders and status.</p>
+        </div>
       </div>
+      <div class="absolute bottom-0 left-0 right-0 h-24 translate-y-full bg-gradient-to-b from-background to-transparent pointer-events-none" />
     </div>
 
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-4 pt-4">
       <Item
         v-for="order in sortedOrders"
         :key="order.order_id"
