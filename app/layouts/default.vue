@@ -27,8 +27,9 @@ const userSession = useState<string>('user_session', () => '')
 function logout() {
   if (import.meta.client) {
     userSession.value = ''
-    sessionStorage.removeItem('user_cart')
     cartState.value = undefined
+    sessionStorage.removeItem('user_cart')
+    sessionStorage.removeItem('user_session')
     navigateTo('/login')
   }
 }
@@ -87,13 +88,13 @@ const customerId = computed(() => userSession.value)
 
 watch(userSession, (value) => {
   if (import.meta.client) {
-    if (!value) {
+    if (!value || value === '') {
       sessionStorage.removeItem('user_session')
     } else {
       sessionStorage.setItem('user_session', value)
     }
   }
-})
+}, { immediate: true })
 
 const totalItems = computed(() => {
     if (cartState == undefined) {
