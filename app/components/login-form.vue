@@ -18,6 +18,7 @@ const props = defineProps<{
 }>()
 
 const customerId = ref('')
+const password = ref('')
 const userSession = useState<string>('user_session', () => '')
 
 // --- 1. PERSISTENCE LOGIC ---
@@ -44,11 +45,12 @@ onMounted(() => {
 // --- 2. ACTIONS ---
 function setUserSession() {
   const id = customerId.value.trim()
+  const pass = password.value.trim()
   
   // Restriction for Demo purposes
-  if (id !== '1') {
-    toast.error('Invalid Customer ID', {
-      description: 'Please use the demo ID "1" to login.'
+  if (id !== '1' || pass !== '1') {
+    toast.error('Invalid Customer ID or Password', {
+      description: 'Please use the demo credentials to login.'
     })
     return
   }
@@ -62,6 +64,8 @@ function setUserSession() {
 // Quick-fill helper
 function useDemo() {
   customerId.value = '1'
+  password.value = '1'
+  toast.success('Demo credentials filled! Click Login to proceed.')
 }
 </script>
 
@@ -86,6 +90,18 @@ function useDemo() {
             type="text" 
             placeholder="e.g. 1"
             v-model="customerId"
+            required
+            class="h-11"
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel for="customerId">Password</FieldLabel>
+          <Input
+            id="customerId"
+            type="password" 
+            placeholder="e.g. 1"
+            v-model="password"
             required
             class="h-11"
           />
