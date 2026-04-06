@@ -233,7 +233,7 @@ if (import.meta.client) {
                         <ItemDescription>${{ item.item_price }} each</ItemDescription>
                     </div>
                     <div class="font-semibold flex flex-col items-end gap-1">
-                        <div>${{ item.item_qty * item.item_price }}</div>
+                        <div>${{ (item.item_qty * item.item_price).toFixed(2) }}</div>
                         <ButtonGroup class="flex flex-row">
                             <Button variant="outline" @click="updateQuantity(`minus`, item.merchant_id, item.item_id)"><MinusIcon /></Button>
                             <Button disabled variant="outline">{{ item.item_qty }}</Button>
