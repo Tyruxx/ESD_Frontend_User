@@ -60,9 +60,24 @@
 
     type Cart = SubmitOrderRequest[];
 
-    const plate_number = ref("")
+    const plate_numbers = ref<Record<number, string>>({})
 
     const cartState = await useState<Cart | undefined>('cartState');
+
+    watch(cartState, (newCart) => {
+        if (import.meta.client) {
+            sessionStorage.setItem('user_cart', JSON.stringify(newCart));
+        }
+    }, { deep: true });
+
+    onMounted(() => {
+    if (import.meta.client) {
+        const savedCart = sessionStorage.getItem('user_cart');
+        if (savedCart) {
+            cartState.value = JSON.parse(savedCart);
+        }
+    }
+    });
 
     function updateQuantity(type: string, merchant_id: number, item_id: number) {
         const order = cartState.value?.find(o => o.merchant_id === merchant_id);
@@ -90,13 +105,15 @@
                 method: 'POST',
                 body: {
                     merchant_id: order.merchant_id,
-                    customer_plate: plate_number.value,
+                    customer_plate: plate_numbers.value[order.merchant_id] || "",
                     customer_id: 1,
                     payment_method: "STRIPE",
                     item_list: order.item_list, // Match the API field name
-                    eta: new Date().toISOString()
+                    eta: new Date().toISOString(),
+                    sc_id: order.sc_id
                 }
             })
+            cartState.value = cartState.value?.filter(c => c.merchant_id !== order.merchant_id);
             window.location.href = response.payment_url
         } catch (e) {
             alert('Submit Order Failed')
@@ -157,7 +174,7 @@
                 </div>
                 <div class="flex flex-row w-full justify-between items-center">
                       <div class="flex flex-row w-full items-center space-x-2">
-                        <Input type="text" placeholder="Enter plate number..." />
+                        <Input v-model="plate_numbers[cart.merchant_id]" type="text" placeholder="Enter plate number..." />
                         <Button type="submit" @click="submitOrder(cart)">
                             Submit
                         </Button>

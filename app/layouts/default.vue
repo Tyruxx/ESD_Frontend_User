@@ -49,6 +49,20 @@ type SubmitOrderRequest = {
 
 type Cart = SubmitOrderRequest[];
 const cartState = useState<Cart | undefined>('cartState');
+watch(cartState, (newCart) => {
+    if (import.meta.client) {
+        sessionStorage.setItem('user_cart', JSON.stringify(newCart));
+    }
+}, { deep: true });
+
+onMounted(() => {
+    if (import.meta.client) {
+        const savedCart = sessionStorage.getItem('user_cart');
+        if (savedCart && (!cartState.value || cartState.value.length === 0)) {
+            cartState.value = JSON.parse(savedCart);
+        }
+    }
+});
 
 
 const totalItems = computed(() => {

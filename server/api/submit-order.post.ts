@@ -11,7 +11,8 @@ export default defineEventHandler(async (event) => {
             customer_id: body.customer_id,
             payment_method: body.payment_method,
             item_list: body.item_list, // Ensure this matches the API exactly
-            eta: body.eta
+            eta: body.eta,
+            sc_id: body.sc_id
         }
         const SubmitOrderResponse = await $fetch<SubmitOrderResponse>("https://personal-9otexixp.outsystemscloud.com/SubmitOrder/rest/SubmitOrder/SubmitOrder", {
             method: 'POST',

@@ -18,8 +18,29 @@ const statusMap: Record<number, { label: string; variant: 'default' | 'secondary
   10: { label: 'PAYMENT FAILED', variant: 'destructive' },
 }
 
-// Mock Data
-const { data: orders, error } = await useLazyFetch(`/api/order-by-customer-id?customer_id=1`)
+// Mock User ID
+const { data: orders, error: orderError } = await useLazyFetch(`/api/order-by-customer-id?customer_id=1`)
+
+// Item List and Conversion to Record
+type Items = {
+    item_id: number,
+    merchant_id: number,
+    item_name: string,
+    item_qty: number,
+    item_price: number,
+    is_on_sale: boolean
+}[]
+const { data: items, error: itemError } = await useLazyFetch<Items>('/api/items');
+if (itemError.value != undefined) {
+  console.error('Error fetching items:', itemError.value);
+} else if (items.value != undefined) {
+  const itemRecord = items.value.reduce((acc: Record<number, any>, item: any) => {
+    acc[item.item_id] = item;
+    return acc;
+  }, {});
+  console.log('Item Record:', itemRecord);
+}
+
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleString([], { 
@@ -57,16 +78,18 @@ function goToHome() {
         class="flex flex-col items-start p-4 gap-4"
       >
         <div class="flex justify-between w-full items-start">
-          <div class="flex flex-col">
-            <ItemTitle class="text-lg">Order #{{ order.order_id }}</ItemTitle>
-            <ItemDescription>Plate: {{ order.customer_plate }}</ItemDescription>
-          </div>
+          <div class="flex flex-col gap-2">
           <Badge :variant="statusMap[order.order_status]?.variant || 'outline'" v-if="order.order_status != undefined">
             {{ statusMap[order.order_status]?.label }}
           </Badge>
           <Badge variant="outline" v-else>
             UNKNOWN
           </Badge>
+            <div class="gap-1">
+              <ItemTitle class="text-lg">Order #{{ order.order_id }}</ItemTitle>
+              <ItemDescription>Plate: {{ order.customer_plate }}</ItemDescription>
+            </div>
+          </div>
         </div>
 
         <Separator />
@@ -97,7 +120,7 @@ function goToHome() {
              <div class="text-xs text-muted-foreground">
                Ordered: {{ formatDate(order.eta ?? "") }}
              </div>
-             <div class="text-lg font-bold">
+             <div class="text-xs font-semibold">
                Total: ${{ calculateTotal(order.order_items ?? []).toFixed(2) }}
              </div>
           </div>
@@ -109,7 +132,7 @@ function goToHome() {
       <Package class="w-12 h-12 text-muted-foreground mb-4" />
       <h3 class="text-lg font-medium">No orders yet</h3>
       <p class="text-sm text-muted-foreground">When you place an order, it will appear here.</p>
-      <Button class="mt-4" @click="goToHome">Start Shopping</Button>
+      <Button class="mt-4" @click="goToHome()">Start Shopping</Button>
     </div>
   </div>
 </template>

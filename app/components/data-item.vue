@@ -41,9 +41,32 @@
             sc_loading_slots: string
     }
 
+    type Merchant = {
+      merchant_id: number,
+      sc_id: number,
+      merchant_name: string
+    }
+
+    const merchantState = await useState<Merchant | undefined>('merchantState');
     const shoppingCenterState = await useState<ShoppingCenter | undefined>('shoppingCenterState');
     const itemState = await useState<Item | undefined >('itemState');
     const cartState = await useState<Cart | undefined>('cartState');
+
+    watch(cartState, (newCart) => {
+        if (import.meta.client) {
+            sessionStorage.setItem('user_cart', JSON.stringify(newCart));
+        }
+    }, { deep: true });
+
+    onMounted(() => {
+        if (import.meta.client) {
+            const savedCart = sessionStorage.getItem('user_cart');
+            if (savedCart && (!cartState.value || cartState.value.length === 0)) {
+                cartState.value = JSON.parse(savedCart);
+            }
+        }
+    });
+
     const quantity = ref(0);
     function updateQuantity(type: string) {
         if (type == "minus") {
@@ -79,7 +102,8 @@ function updateIntoCart() {
             payment_method: "", // Default from API
             eta: new Date().toISOString(),
             item_list: [],
-            items_full_data: []
+            items_full_data: [],
+            merchant_name: merchantState.value?.merchant_name
         };
         cartState.value.push(merchantOrder);
     }
