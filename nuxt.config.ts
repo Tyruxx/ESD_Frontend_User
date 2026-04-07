@@ -15,6 +15,7 @@ export default defineNuxtConfig({
   css: ['./app/assets/css/main.css'],
 
   runtimeConfig: {
+    submitVerifyOrderApiKey: process.env.SUBMIT_VERIFY_ORDER_API_KEY,
     public: {
     },
   },
@@ -42,5 +43,10 @@ export default defineNuxtConfig({
      * @default "@/components/ui"
      */
     componentDir: '@/components/ui',
+  },
+  routeRules: {
+    '/api/external/**': { 
+      proxy: 'http://40.83.77.78:8000/api/**' 
+    },
   }
 })

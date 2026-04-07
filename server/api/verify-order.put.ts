@@ -1,32 +1,49 @@
 export default defineEventHandler(async (event) => {
-    try {
-        type VerifyOrderRequest = {
-            OrderId: number,
-            MerchantId: number,
-            ScId: number,
-            SessionId: string
-        }
-        const body = await readBody<VerifyOrderRequest>(event);
-        type VerifyOrderResponse = {
-            order_id: number,
-            merchant_id: number,
-            order_status: number,
-            customer_plate: string,
-            eta: string,
-            order_time: string,
-            sc_id: number
-        }
-        const verifyOrderResponse = await $fetch<VerifyOrderResponse>("https://personal-9otexixp.outsystemscloud.com/VerifyOrder/rest/VerifyOrder/VerifyOrder", {
-            method: 'PUT',
-            body: {
-                StripeSessionId: body.SessionId,
-                OrderId: body.OrderId,
-                MerchantId: body.MerchantId,
-                ScId: body.ScId
-            }
-        });
-        return verifyOrderResponse;
-    } catch (error) {
-        throw createError({ statusCode: 500, statusMessage: 'Verify Order Failed' })
+  const config = useRuntimeConfig(event)
+  
+  try {
+    type VerifyOrderRequest = {
+      OrderId: number,
+      MerchantId: number,
+      ScId: number,
+      SessionId: string
     }
+
+    const body = await readBody<VerifyOrderRequest>(event);
+
+    type VerifyOrderResponse = {
+      order_id: number,
+      merchant_id: number,
+      order_status: number,
+      customer_plate: string,
+      eta: string,
+      order_time: string,
+      sc_id: number
+    }
+
+    // Updated to use the new gateway and apiKey
+    const verifyOrderResponse = await $fetch<VerifyOrderResponse>("http://40.83.77.78:8000/api/verify", {
+      method: 'PUT',
+      headers: {
+        // Using the specific key provided: E3TvZfMdMILYn6zIH2hxhu4yMbmJ5NhQ
+        'apiKey': config.submitVerifyOrderApiKey
+      },
+      body: {
+        StripeSessionId: body.SessionId,
+        OrderId: body.OrderId,
+        MerchantId: body.MerchantId,
+        ScId: body.ScId
+      }
+    });
+
+    return verifyOrderResponse;
+
+  } catch (error: any) {
+    console.error('Verify Order API Error:', error.data || error.message)
+    
+    throw createError({ 
+      statusCode: error.response?.status || 500, 
+      statusMessage: error.data?.message || 'Verify Order Failed' 
+    })
+  }
 })
