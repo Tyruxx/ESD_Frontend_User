@@ -116,72 +116,56 @@
     }
 
     async function validateAndSubmit(order: SubmitOrderRequest) {
-        const plate = plate_numbers.value[order.merchant_id]?.trim();
-        const time = selected_times.value[order.merchant_id];
+    const plate = plate_numbers.value[order.merchant_id]?.trim();
+    // This is the raw string from the input: "YYYY-MM-DDTHH:mm"
+    const timeRaw = selected_times.value[order.merchant_id]; 
 
-        if (!plate) {
-            toast.error("Plate Number Required", {
-                description: "Please enter a valid vehicle plate number."
-            });
-            return;
-        }
-        
-        if (!time) {
-            toast.error("Arrival Time Required", {
-                description: "Please select when you plan to arrive."
-            });
-            return;
-        }
+    if (!plate || !timeRaw) {
+        toast.error("Information Required", { description: "Plate and ETA are mandatory." });
+        return;
+    }
 
-        const arrivalDate = new Date(time);
-        const hour = arrivalDate.getHours();
-        const openingHour = parseInt(order.opening_time?.split(':')[0] || '-1');
-        const closingHour = parseInt(order.closing_time?.split(':')[0] || '-1');
+    const arrivalDate = new Date(timeRaw);
+    const now = new Date();
 
-        if (arrivalDate < new Date()) {
-            toast.error("Invalid Time", {
-                description: "Arrival time cannot be in the past."
-            });
-            return;
-        }
+    if (arrivalDate < now) {
+        toast.error("Invalid Time", { description: "Arrival time cannot be in the past." });
+        return;
+    }
 
-        if (openingHour != -1 && closingHour != -1) {
-            if (hour < openingHour || hour >= closingHour) {
-                toast.warning("Merchant Closed", {
-                    description: `Please select a time between ${openingHour}:00 and ${closingHour}:00.`
-                });
-                return;
+    // Use the raw string for the API to ensure the server gets exactly 
+    // what the user typed without timezone conversion shifting the hours.
+    await submitOrder(order, timeRaw); 
+}
+
+    // Add eta as a parameter to ensure we use the local string version
+async function submitOrder(order: SubmitOrderRequest, etaString: string) {
+    try {
+        const response = await $fetch<any>('/api/submit-order', {
+            method: 'POST',
+            body: {
+                merchant_id: order.merchant_id,
+                customer_plate: plate_numbers.value[order.merchant_id],
+                customer_id: 1,
+                payment_method: "STRIPE",
+                item_list: order.item_list,
+                // Send the raw string "2026-04-07T14:00" 
+                // Don't use a Date object here to avoid UTC shifting
+                eta: etaString, 
+                sc_id: order.sc_id,
             }
-            await submitOrder(order);
-        } else {
-            toast.error("Merchant Hours Unavailable", {
-                description: "Unable to retrieve merchant hours. Please try again later."
-            });
-        }
-    }
-
-    async function submitOrder(order: SubmitOrderRequest) {
-        try {
-            const response = await $fetch('/api/submit-order', {
-                method: 'POST',
-                body: {
-                    merchant_id: order.merchant_id,
-                    customer_plate: plate_numbers.value[order.merchant_id],
-                    customer_id: 1,
-                    payment_method: "STRIPE",
-                    item_list: order.item_list, // Match the API field name
-                    eta: selected_times.value[order.merchant_id],
-                    sc_id: order.sc_id,
-                }
-            })
-            cartState.value = cartState.value?.filter(c => c.merchant_id !== order.merchant_id);
+        })
+        
+        // Remove this merchant from cartState
+        cartState.value = cartState.value?.filter(c => c.merchant_id !== order.merchant_id);
+        
+        if (response.payment_url) {
             window.location.href = response.payment_url
-        } catch (e) {
-            toast.error("Submission Failed", {
-                description: "There was an error processing your order. Please try again."
-            });
         }
+    } catch (e) {
+        toast.error("Submission Failed");
     }
+}
 
     function goToHome() {
         navigateTo('/');
@@ -251,7 +235,7 @@
                             <label>ETA</label>
                             <Input 
                                 v-model="selected_times[cart.merchant_id]" 
-                                type="datetime" 
+                                type="datetime-local" 
                             />
                         </div>
                         <div class="flex flex-col w-full">
