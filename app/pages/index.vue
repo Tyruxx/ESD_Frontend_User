@@ -28,10 +28,12 @@ import Merchants from '~/components/merchants.vue'
   // --- 2. STATE INITIALIZATION ---
   // We add a factory function to check sessionStorage immediately on the client
   const userSession = useState<string>('user_session', () => {
-    if (import.meta.client) return sessionStorage.getItem('customer_id') || ''
+    // This runs immediately when the state is first accessed
+    if (import.meta.client) {
+      return sessionStorage.getItem('customer_id') || ''
+    }
     return ''
   })
-
   const shoppingCenterState = useState<ShoppingCenter | undefined>('shoppingCenterState', undefined);
   const merchantState = useState<Merchant | undefined>('merchantState', undefined);
   const itemState = useState<Item | undefined>('itemState', undefined);
@@ -39,11 +41,13 @@ import Merchants from '~/components/merchants.vue'
 
   // --- 3. AUTH GUARD ---
   // This runs on the client side to redirect if no session is found
-  onMounted(() => {
-    if (!userSession.value) {
+  watch(userSession, (val) => {
+    // If we are on the client and the session is still empty after initialization
+    if (import.meta.client && !val) {
       navigateTo('/login')
     }
-  })
+  }, { immediate: true })
+  
 </script>
 <template>
   <div class="px-8 py-8 flex mx-auto flex-col min-h-screen gap-4 w-sm">
