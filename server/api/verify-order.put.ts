@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Updated to use the new gateway and apiKey
-    const verifyOrderResponse = await $fetch<VerifyOrderResponse>("http://40.83.77.78:8000/api/verify", {
+    const verifyOrderResponse = await $fetch<VerifyOrderResponse>("http://40.83.77.78:8000/api/verify/VerifyOrder", {
       method: 'PUT',
       headers: {
         'apikey': config.submitVerifyOrderApiKey
