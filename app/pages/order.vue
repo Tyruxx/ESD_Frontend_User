@@ -170,7 +170,7 @@ if (!userSession.value) {
         <div class="flex flex-col gap-3 w-full">
           <div class="flex items-center gap-2 text-xs text-muted-foreground">
             <Clock class="w-3 h-3" />
-            <span>ETA: {{ formatDate(order.eta ?? "") }}</span>
+            <span>ETA: {{ new Date(order.eta ?? "").toString() }}</span>
           </div>
           
           <div class="flex justify-between items-center w-full">
