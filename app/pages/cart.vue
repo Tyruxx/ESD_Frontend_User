@@ -251,7 +251,7 @@
                             <label>ETA</label>
                             <Input 
                                 v-model="selected_times[cart.merchant_id]" 
-                                type="datetime-local" 
+                                type="datetime" 
                             />
                         </div>
                         <div class="flex flex-col w-full">
