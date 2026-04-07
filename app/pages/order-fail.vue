@@ -43,21 +43,21 @@
         EmptyTitle,
     } from '@/components/ui/empty'
 
-  const userSession = useState<string>('user_session', () => {
-    // This runs immediately when the state is first accessed
-    if (import.meta.client) {
-      return sessionStorage.getItem('customer_id') || ''
-    }
-    return ''
-  })
+  // const userSession = useState<string>('user_session', () => {
+  //   // This runs immediately when the state is first accessed
+  //   if (import.meta.client) {
+  //     return sessionStorage.getItem('customer_id') || ''
+  //   }
+  //   return ''
+  // })
 
-  watch(userSession, (val) => {
-    console.log("User session changed:", val) // Debug log to check session value changes
-  // If we are on the client and the session is still empty after initialization
-  if (import.meta.client && !val) {
-    navigateTo('/login')
-  }
-  }, { immediate: true })
+  // watch(userSession, (val) => {
+  //   console.log("User session changed:", val) // Debug log to check session value changes
+  // // If we are on the client and the session is still empty after initialization
+  // if (import.meta.client && !val) {
+  //   navigateTo('/login')
+  // }
+  // }, { immediate: true })
 
 // "http://localhost:3000/order-success?" + "OrderId=" + LongIntegerToText(CreateOrder.Response.data.order_id) + "?MerchantId=" + LongIntegerToText(CreateOrder.Response.data.merchant_id) + "?ScId=" + LongIntegerToText(CreateOrder.Response.data.sc_id) + "&SessionId={CHECKOUT_SESSION_ID}"
 </script>
