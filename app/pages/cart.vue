@@ -1,10 +1,4 @@
 <script lang="ts" setup>
-// if (import.meta.client) {
-//   const session = sessionStorage.getItem('user_session')
-//   if (!session) {
-//     navigateTo('/login')
-//   }
-// }
 
     import {
     Card,
@@ -197,6 +191,16 @@
         const { data } = await useFetch<Merchant>(`/api/merchant-by-sc_id-by-merchant_id?sc_id=${scId}merchant_id=${merchantId}`)
         return data.value?.data.merchant_name
     }
+
+    const userSession = useState<string>('user_session', () => {
+    if (import.meta.client) return sessionStorage.getItem('customer_id') || ''
+    return ''
+  })
+    onMounted(() => {
+    if (!userSession.value) {
+      navigateTo('/login')
+    }
+  })
 
 </script>
 

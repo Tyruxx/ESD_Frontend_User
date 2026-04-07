@@ -44,6 +44,15 @@
     } from '@/components/ui/empty'
 
 // "http://localhost:3000/order-success?" + "OrderId=" + LongIntegerToText(CreateOrder.Response.data.order_id) + "?MerchantId=" + LongIntegerToText(CreateOrder.Response.data.merchant_id) + "?ScId=" + LongIntegerToText(CreateOrder.Response.data.sc_id) + "&SessionId={CHECKOUT_SESSION_ID}"
+    const userSession = useState<string>('user_session', () => {
+    if (import.meta.client) return sessionStorage.getItem('customer_id') || ''
+    return ''
+  })
+    onMounted(() => {
+    if (!userSession.value) {
+      navigateTo('/login')
+    }
+  })
 </script>
 
 <template class="px-8 py-8 flex mx-auto flex-col min-h-screen gap-4 w-sm">

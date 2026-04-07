@@ -43,6 +43,16 @@
         EmptyTitle,
     } from '@/components/ui/empty'
 
+  const userSession = useState<string>('user_session', () => {
+    if (import.meta.client) return sessionStorage.getItem('customer_id') || ''
+    return ''
+  })
+    onMounted(() => {
+    if (!userSession.value) {
+      navigateTo('/login')
+    }
+  })
+
 // "http://localhost:3000/order-success?" + "OrderId=" + LongIntegerToText(CreateOrder.Response.data.order_id) + "?MerchantId=" + LongIntegerToText(CreateOrder.Response.data.merchant_id) + "?ScId=" + LongIntegerToText(CreateOrder.Response.data.sc_id) + "&SessionId={CHECKOUT_SESSION_ID}"
 </script>
 

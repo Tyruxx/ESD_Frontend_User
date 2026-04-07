@@ -25,8 +25,7 @@ export default defineEventHandler(async (event) => {
     const verifyOrderResponse = await $fetch<VerifyOrderResponse>("http://40.83.77.78:8000/api/verify", {
       method: 'PUT',
       headers: {
-        // Using the specific key provided: E3TvZfMdMILYn6zIH2hxhu4yMbmJ5NhQ
-        'apiKey': config.submitVerifyOrderApiKey
+        'apikey': config.submitVerifyOrderApiKey
       },
       body: {
         StripeSessionId: body.SessionId,

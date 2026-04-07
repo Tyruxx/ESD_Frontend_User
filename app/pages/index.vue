@@ -1,10 +1,4 @@
 <script lang="ts" setup>
-// if (import.meta.client) {
-//   const session = sessionStorage.getItem('user_session')
-//   if (!session) {
-//     navigateTo('/login')
-//   }
-// }
 
 import Merchants from '~/components/merchants.vue'
 
@@ -31,10 +25,25 @@ import Merchants from '~/components/merchants.vue'
   }
   type Cart = Record<string,Item>;
 
-  const shoppingCenterState = await useState<ShoppingCenter | undefined>('shoppingCenterState', undefined);
-  const merchantState = await useState<Merchant | undefined>('merchantState', undefined);
-  const itemState = await useState<Item | undefined>('itemState', undefined);
-  const cartState = await useState<Cart | undefined>('cartState', undefined);
+  // --- 2. STATE INITIALIZATION ---
+  // We add a factory function to check sessionStorage immediately on the client
+  const userSession = useState<string>('user_session', () => {
+    if (import.meta.client) return sessionStorage.getItem('customer_id') || ''
+    return ''
+  })
+
+  const shoppingCenterState = useState<ShoppingCenter | undefined>('shoppingCenterState', undefined);
+  const merchantState = useState<Merchant | undefined>('merchantState', undefined);
+  const itemState = useState<Item | undefined>('itemState', undefined);
+  const cartState = useState<Cart | undefined>('cartState', undefined);
+
+  // --- 3. AUTH GUARD ---
+  // This runs on the client side to redirect if no session is found
+  onMounted(() => {
+    if (!userSession.value) {
+      navigateTo('/login')
+    }
+  })
 </script>
 <template>
   <div class="px-8 py-8 flex mx-auto flex-col min-h-screen gap-4 w-sm">

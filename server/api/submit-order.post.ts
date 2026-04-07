@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
         const response = await $fetch<SubmitOrderResponse>("http://40.83.77.78:8000/api/submit/SubmitOrder", {
             method: 'POST',
             headers: {
-                'apiKey': config.submitVerifyOrderApiKey // Security header added here
+                'apikey': config.submitVerifyOrderApiKey // Security header added here
             },
             body: payload
         });

@@ -96,6 +96,16 @@ function calculateTotal(items: any[]) {
 function goToHome() {
   navigateTo('/')
 }
+
+const userSession = useState<string>('user_session', () => {
+if (import.meta.client) return sessionStorage.getItem('customer_id') || ''
+return ''
+})
+onMounted(() => {
+if (!userSession.value) {
+  navigateTo('/login')
+}
+})
 </script>
 
 <template>
