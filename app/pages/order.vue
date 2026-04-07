@@ -175,7 +175,7 @@ if (!userSession.value) {
           
           <div class="flex justify-between items-center w-full">
              <div class="text-xs text-muted-foreground">
-               Ordered: {{ formatDate(order.eta ?? "") }}
+               Ordered: {{ formatDate(order.order_time ?? "") }}
              </div>
              <div class="text-xs font-semibold">
                Total: ${{ calculateTotal(order.order_items ?? []).toFixed(2) }}

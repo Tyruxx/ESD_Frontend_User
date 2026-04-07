@@ -52,6 +52,7 @@
   })
 
   watch(userSession, (val) => {
+    console.log("User session changed:", val) // Debug log to check session value changes
   // If we are on the client and the session is still empty after initialization
   if (import.meta.client && !val) {
     navigateTo('/login')
