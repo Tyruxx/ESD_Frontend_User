@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-if (import.meta.client) {
-  const session = sessionStorage.getItem('user_session')
-  if (!session) {
-    navigateTo('/login')
-  }
-}
+// if (import.meta.client) {
+//   const session = sessionStorage.getItem('user_session')
+//   if (!session) {
+//     navigateTo('/login')
+//   }
+// }
 
 import { Badge } from '@/components/ui/badge'
 import { ChevronLeft, Clock, Package } from 'lucide-vue-next'
